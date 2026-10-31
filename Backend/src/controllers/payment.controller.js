@@ -33,9 +33,9 @@ export const getAllPaymentsController = async (req, res, next) => {
     const [payments, total] = await Promise.all([
       paymentModel
         .find(filter)
-        .populate("customer", "fullName email")
+        .populate("customer", "fullname email")
         .populate("invoice", "invoiceNumber totalAmount paidAmount dueAmount")
-        .populate("receivedBy", "fullName email")
+        .populate("receivedBy", "fullname email")
         .sort({ paymentDate: -1 })
         .skip(skip)
         .limit(Number(limit)),
@@ -73,9 +73,9 @@ export const getPaymentByIdController = async (req, res, next) => {
 
     const payment = await paymentModel
       .findById(id)
-      .populate("customer", "fullName email")
+      .populate("customer", "fullname email")
       .populate("invoice")
-      .populate("receivedBy", "fullName email");
+      .populate("receivedBy", "fullname email");
 
     if (!payment) {
       return res.status(404).json({
@@ -85,10 +85,7 @@ export const getPaymentByIdController = async (req, res, next) => {
     }
 
     // Customers can only access their own payments
-    if (
-      req.user.role === "customer" &&
-      payment.customer._id.toString() !== req.user.userId
-    ) {
+    if (payment.customer.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "You cannot access this payment",
@@ -127,10 +124,7 @@ export const createOrderController = async (req, res, next) => {
     }
 
     // Only the invoice owner can initiate payment
-    if (
-      req.user.role === "customer" &&
-      invoice.customer.toString() !== req.user.userId
-    ) {
+   if (invoice.customer.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "You cannot pay this invoice",
@@ -216,10 +210,7 @@ export const verifyPaymentController = async (req, res, next) => {
     }
 
     // Ensure the logged-in customer owns this payment
-    if (
-      req.user.role === "customer" &&
-      payment.customer.toString() !== req.user.userId
-    ) {
+    if (payment.customer.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "You cannot verify this payment",

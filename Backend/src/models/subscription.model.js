@@ -7,12 +7,14 @@ const subscriptionSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
     },
 
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
     quotation: {
@@ -35,19 +37,26 @@ const subscriptionSchema = new mongoose.Schema(
     expiryDate: {
       type: Date,
       required: true,
+      validate: {
+        validator: function (value) {
+          return !this.startDate || value > this.startDate;
+        },
+        message: "Expiry date must be after the start date.",
+      },
     },
 
     nextBillingDate: {
       type: Date,
       default: null,
+      index: true,
     },
 
     paymentTerms: {
       type: String,
       default: "Due on receipt",
+      trim: true,
     },
 
-    // Subscription Products
     items: [
       {
         product: {
@@ -91,16 +100,19 @@ const subscriptionSchema = new mongoose.Schema(
     subtotal: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     taxAmount: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     discountAmount: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     totalAmount: {
@@ -126,6 +138,7 @@ const subscriptionSchema = new mongoose.Schema(
         "closed",
       ],
       default: "draft",
+      index: true,
     },
 
     autoRenew: {
@@ -141,6 +154,7 @@ const subscriptionSchema = new mongoose.Schema(
     notes: {
       type: String,
       default: "",
+      trim: true,
     },
 
     createdBy: {
@@ -153,6 +167,10 @@ const subscriptionSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Helpful indexes for subscription queries
+subscriptionSchema.index({ customer: 1, status: 1 });
+subscriptionSchema.index({ status: 1, nextBillingDate: 1 });
 
 const subscriptionModel = mongoose.model(
   "Subscription",

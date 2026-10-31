@@ -1,3 +1,4 @@
+import userModel from "../models/user.model.js";
 import mongoose from "mongoose";
 import { randomBytes } from "crypto";
 
@@ -73,6 +74,18 @@ export const createSubscriptionController = async (req, res, next) => {
         message: "Only confirmed quotations can create subscriptions.",
       });
     }
+    // Ensure the quotation belongs to a valid customer account.
+const customerExists = await userModel.findOne({
+  _id: quotation.customer,
+  role: "customer",
+});
+
+if (!customerExists) {
+  return res.status(400).json({
+    success: false,
+    message: "Quotation does not belong to a valid customer.",
+  });
+}
 
     // Prevent duplicate subscription creation from one quotation.
     const existingSubscription = await subscriptionModel.findOne({
@@ -222,13 +235,13 @@ export const getAllSubscriptionsController = async (req, res, next) => {
     const [subscriptions, total] = await Promise.all([
       subscriptionModel
         .find(filter)
-        .populate("customer", "fullName email")
+        .populate("customer", "fullname email")
         .populate("quotation", "quotationNumber status")
         .populate("plan")
         .populate("items.product", "name type")
         .populate("items.variant", "variantName variantValue")
         .populate("items.tax")
-        .populate("createdBy", "fullName email")
+        .populate("createdBy", "fullname email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNumber),
@@ -266,13 +279,13 @@ export const getSubscriptionByIdController = async (req, res, next) => {
 
     const subscription = await subscriptionModel
       .findById(subscriptionId)
-      .populate("customer", "fullName email")
+      .populate("customer", "fullname email")
       .populate("quotation", "quotationNumber status")
       .populate("plan")
       .populate("items.product", "name type")
       .populate("items.variant", "variantName variantValue")
       .populate("items.tax")
-      .populate("createdBy", "fullName email");
+      .populate("createdBy", "fullname email");
 
     if (!subscription) {
       return res.status(404).json({

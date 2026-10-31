@@ -7,18 +7,23 @@ const productVariantSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
+      index: true,
     },
 
     variantName: {
       type: String,
       required: true,
       trim: true,
+      minlength: 1,
+      maxlength: 100,
     },
 
     variantValue: {
       type: String,
       required: true,
       trim: true,
+      minlength: 1,
+      maxlength: 100,
     },
 
     additionalPrice: {
@@ -30,6 +35,7 @@ const productVariantSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
 
     createdBy: {
@@ -40,6 +46,18 @@ const productVariantSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  }
+);
+
+// Improve variant filtering by product
+productVariantSchema.index({ product: 1, isActive: 1 });
+
+// Prevent duplicate active variant names and values for the same product
+productVariantSchema.index(
+  { product: 1, variantName: 1, variantValue: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isActive: true },
   }
 );
 

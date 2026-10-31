@@ -7,17 +7,22 @@ const planSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
+      maxlength: 100,
     },
 
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
+      index: true,
     },
 
     description: {
       type: String,
       default: "",
+      trim: true,
+      maxlength: 1000,
     },
 
     price: {
@@ -46,9 +51,14 @@ const planSchema = new mongoose.Schema(
     endDate: {
       type: Date,
       default: null,
+      validate: {
+        validator: function (value) {
+          return !value || !this.startDate || value > this.startDate;
+        },
+        message: "End date must be after the start date.",
+      },
     },
 
-    // Plan Permissions
     allowEarlyClosure: {
       type: Boolean,
       default: false,
@@ -72,6 +82,7 @@ const planSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
 
     createdBy: {
@@ -84,6 +95,11 @@ const planSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Improve plan filtering
+planSchema.index({ product: 1, isActive: 1 });
+planSchema.index({ billingCycle: 1, isActive: 1 });
+planSchema.index({ createdBy: 1 });
 
 const planModel = mongoose.model("Plan", planSchema);
 

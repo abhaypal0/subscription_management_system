@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
@@ -43,6 +44,13 @@ const paymentSchema = new mongoose.Schema(
       min: 0.01,
     },
 
+    currency: {
+      type: String,
+      default: "INR",
+      enum: ["INR"],
+      required: true,
+    },
+
     paymentDate: {
       type: Date,
       default: Date.now,
@@ -59,7 +67,7 @@ const paymentSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["pending", "completed", "failed", "refunded"],
-      default: "completed",
+      default: "pending",
       index: true,
     },
 
@@ -73,6 +81,7 @@ const paymentSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
     razorpayOrderId: {
       type: String,
       unique: true,
@@ -86,20 +95,19 @@ const paymentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
-
+// Additional index for payment filtering and sorting
 paymentSchema.index({ status: 1, paymentDate: -1 });
 
-
+// Recalculate invoice paid amount using completed payments
 async function syncInvoicePaymentStatus(invoiceId) {
   if (!invoiceId) return;
 
   const Payment = mongoose.model("Payment");
   const Invoice = mongoose.model("Invoice");
 
-  
   const result = await Payment.aggregate([
     {
       $match: {
@@ -110,22 +118,27 @@ async function syncInvoicePaymentStatus(invoiceId) {
     {
       $group: {
         _id: "$invoice",
-        totalPaid: { $sum: "$amount" },
+        totalPaid: {
+          $sum: "$amount",
+        },
       },
     },
   ]);
 
-  const totalPaid = result.length > 0 ? Number(result[0].totalPaid.toFixed(2)) : 0;
+  const totalPaid =
+    result.length > 0
+      ? Number(result[0].totalPaid.toFixed(2))
+      : 0;
 
   const invoice = await Invoice.findById(invoiceId);
+
   if (invoice) {
     invoice.paidAmount = totalPaid;
-  
     await invoice.save();
   }
 }
 
-
+// Sync invoice after creating or saving a payment
 paymentSchema.post("save", async function (doc, next) {
   try {
     await syncInvoicePaymentStatus(doc.invoice);
@@ -135,7 +148,7 @@ paymentSchema.post("save", async function (doc, next) {
   }
 });
 
-
+// Sync invoice after findOneAndUpdate
 paymentSchema.post("findOneAndUpdate", async function (doc, next) {
   try {
     if (doc) {

@@ -103,7 +103,10 @@ export const createQuotationController = async (req, res, next) => {
       });
     }
 
-    const customerExists = await userModel.findById(customer);
+    const customerExists = await userModel.findOne({
+      _id: customer,
+      role: "customer",
+    });
 
     if (!customerExists) {
       return res.status(404).json({
@@ -372,7 +375,7 @@ export const updateQuotationController = async (req, res, next) => {
       quotation.validDays = Number(validDays);
       quotation.expiryDate = new Date(
         quotation.quotationDate.getTime() +
-          quotation.validDays * 24 * 60 * 60 * 1000,
+        quotation.validDays * 24 * 60 * 60 * 1000,
       );
     }
 
@@ -398,7 +401,12 @@ export const updateQuotationController = async (req, res, next) => {
 
       quotation.discountAmount = discount;
     }
-
+    if (quotation.discountAmount > quotation.subtotal) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount cannot exceed the quotation subtotal.",
+      });
+    }
     if (paymentTerms !== undefined) quotation.paymentTerms = paymentTerms;
     if (notes !== undefined) quotation.notes = notes;
     if (templateName !== undefined) quotation.templateName = templateName;

@@ -7,36 +7,40 @@ import {
   deactivateProductVariantController,
 } from "../controllers/productVariant.controller.js";
 
+import { authUser } from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
 
 const router = express.Router();
 
-// Create a new product variant (Admin only)
+// Require login for every endpoint
+router.use(authUser);
+
+// Create a variant for a product (Admin only)
 router.post(
-  "/",
+  "/:productId",
   authorizeRoles("admin"),
-  createProductVariantController,
+  createProductVariantController
 );
 
-// Get product variant details by variant ID
+// Get variants belonging to a product (all roles)
 router.get(
-  "/:variantId",
+  "/:productId",
   authorizeRoles("admin", "staff", "customer"),
-  getProductVariantByIdController,
+  getProductVariantByIdController
 );
 
-// Update existing product variant details (Admin only)
+// Update a variant (Admin only)
 router.patch(
   "/:variantId",
   authorizeRoles("admin"),
-  updateProductVariantController,
+  updateProductVariantController
 );
 
-// Deactivate a product variant (Admin only)
+// Deactivate a variant (Admin only)
 router.delete(
   "/:variantId",
   authorizeRoles("admin"),
-  deactivateProductVariantController,
+  deactivateProductVariantController
 );
 
 export default router;

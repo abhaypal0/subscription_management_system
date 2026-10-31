@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const invoiceSchema = new mongoose.Schema(
@@ -13,7 +14,7 @@ const invoiceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true, 
+      index: true,
     },
 
     subscription: {
@@ -23,7 +24,6 @@ const invoiceSchema = new mongoose.Schema(
       index: true,
     },
 
-  
     billingPeriodKey: {
       type: String,
       required: true,
@@ -38,10 +38,9 @@ const invoiceSchema = new mongoose.Schema(
     dueDate: {
       type: Date,
       required: true,
-      index: true, 
+      index: true,
     },
 
-    
     items: [
       {
         product: {
@@ -50,19 +49,18 @@ const invoiceSchema = new mongoose.Schema(
           required: true,
         },
 
-        
         productName: {
           type: String,
           default: "",
         },
 
         variantName: {
-          type: String, 
+          type: String,
           default: "",
         },
 
         variantPriceModifier: {
-          type: Number, 
+          type: Number,
           default: 0,
         },
 
@@ -78,7 +76,7 @@ const invoiceSchema = new mongoose.Schema(
         },
 
         unitPrice: {
-          type: Number, 
+          type: Number,
           required: true,
           min: 0,
         },
@@ -90,7 +88,7 @@ const invoiceSchema = new mongoose.Schema(
         },
 
         taxRate: {
-          type: Number, 
+          type: Number,
           default: 0,
         },
 
@@ -99,13 +97,13 @@ const invoiceSchema = new mongoose.Schema(
           default: 0,
         },
 
-         discountAmount: {
-          type: Number, 
+        discountAmount: {
+          type: Number,
           default: 0,
         },
 
         amount: {
-          type: Number, 
+          type: Number,
           required: true,
           min: 0,
         },
@@ -117,7 +115,6 @@ const invoiceSchema = new mongoose.Schema(
       default: 0,
     },
 
-  
     appliedDiscount: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Discount",
@@ -159,7 +156,6 @@ const invoiceSchema = new mongoose.Schema(
       index: true,
     },
 
-   
     paymentStatus: {
       type: String,
       enum: ["unpaid", "partially_paid", "paid", "overdue"],
@@ -167,7 +163,6 @@ const invoiceSchema = new mongoose.Schema(
       index: true,
     },
 
-   
     isSent: {
       type: Boolean,
       default: false,
@@ -177,7 +172,6 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -190,34 +184,80 @@ const invoiceSchema = new mongoose.Schema(
   }
 );
 
+// Prevent duplicate invoices for the same subscription billing period
+invoiceSchema.index(
+  { subscription: 1, billingPeriodKey: 1 },
+  { unique: true }
+);
 
-invoiceSchema.index({ subscription: 1, billingPeriodKey: 1 }, { unique: true });
+// Improve invoice status filtering
+invoiceSchema.index({
+  status: 1,
+  paymentStatus: 1,
+  dueDate: 1,
+});
 
-
-invoiceSchema.index({ status: 1, paymentStatus: 1, dueDate: 1 });
-
-
+// Automatically calculate due amount and payment status
 invoiceSchema.pre("save", function (next) {
- 
-  this.dueAmount = Math.max(0, Number((this.totalAmount - this.paidAmount).toFixed(2)));
+  try {
+    this.paidAmount = Number(this.paidAmount || 0);
+    this.totalAmount = Number(this.totalAmount || 0);
 
-  if (this.status === "cancelled") {
-    return next();
+    // Prevent paid amount from exceeding invoice total
+    if (this.paidAmount > this.totalAmount) {
+      return next(
+        new Error("Paid amount cannot exceed invoice total amount.")
+      );
+    }
+
+    this.dueAmount = Math.max(
+      0,
+      Number((this.totalAmount - this.paidAmount).toFixed(2))
+    );
+
+    // Cancelled invoices must remain cancelled
+    if (this.status === "cancelled") {
+      return next();
+    }
+
+    // Fully paid invoice
+    if (this.dueAmount === 0 && this.totalAmount > 0) {
+      this.paymentStatus = "paid";
+      this.status = "paid";
+    }
+
+    // Partially paid invoice
+    else if (this.paidAmount > 0) {
+      this.paymentStatus = "partially_paid";
+
+      // Restore a previously paid invoice if payment is reversed
+      if (this.status === "paid") {
+        this.status = "confirmed";
+      }
+    }
+
+    // Unpaid or overdue invoice
+    else if (
+      this.dueDate &&
+      new Date() > new Date(this.dueDate)
+    ) {
+      this.paymentStatus = "overdue";
+
+      if (this.status === "paid") {
+        this.status = "confirmed";
+      }
+    } else {
+      this.paymentStatus = "unpaid";
+
+      if (this.status === "paid") {
+        this.status = "confirmed";
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  
-  if (this.dueAmount === 0 && this.totalAmount > 0) {
-    this.paymentStatus = "paid";
-    this.status = "paid"; 
-  } else if (this.paidAmount > 0 && this.dueAmount > 0) {
-    this.paymentStatus = "partially_paid";
-  } else if (this.dueDate && new Date() > new Date(this.dueDate) && this.dueAmount > 0) {
-    this.paymentStatus = "overdue";
-  } else {
-    this.paymentStatus = "unpaid";
-  }
-
-  next();
 });
 
 const invoiceModel = mongoose.model("Invoice", invoiceSchema);

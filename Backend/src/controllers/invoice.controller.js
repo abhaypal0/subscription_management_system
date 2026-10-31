@@ -341,12 +341,12 @@ export const getAllInvoicesController = async (req, res, next) => {
     const [invoices, total] = await Promise.all([
       invoiceModel
         .find(filter)
-        .populate("customer", "fullName email")
+        .populate("customer", "fullname email")
         .populate("subscription", "subscriptionNumber billingCycle status")
         .populate("items.product", "name")
         .populate("items.tax")
         .populate("appliedDiscount")
-        .populate("createdBy", "fullName email")
+        .populate("createdBy", "fullname email")
         .sort({ invoiceDate: -1 })
         .skip(skip)
         .limit(limitNumber),
@@ -384,12 +384,12 @@ export const getInvoiceByIdController = async (req, res, next) => {
 
     const invoice = await invoiceModel
       .findById(invoiceId)
-      .populate("customer", "fullName email")
+      .populate("customer", "fullname email")
       .populate("subscription", "subscriptionNumber billingCycle status")
       .populate("items.product", "name type")
       .populate("items.tax")
       .populate("appliedDiscount")
-      .populate("createdBy", "fullName email");
+      .populate("createdBy", "fullname email");
 
     if (!invoice) {
       return res.status(404).json({

@@ -7,6 +7,8 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
+      maxlength: 100,
     },
 
     type: {
@@ -30,19 +32,22 @@ const productSchema = new mongoose.Schema(
     notes: {
       type: String,
       default: "",
+      trim: true,
+      maxlength: 1000,
     },
 
-    // Product Variants
     variants: [
       {
         name: {
           type: String,
           required: true,
+          trim: true,
         },
 
         value: {
           type: String,
           required: true,
+          trim: true,
         },
 
         additionalPrice: {
@@ -56,6 +61,7 @@ const productSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
 
     createdBy: {
@@ -68,6 +74,11 @@ const productSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Improve product searching and filtering
+productSchema.index({ name: 1 });
+productSchema.index({ type: 1, isActive: 1 });
+productSchema.index({ createdBy: 1 });
 
 const productModel = mongoose.model("Product", productSchema);
 

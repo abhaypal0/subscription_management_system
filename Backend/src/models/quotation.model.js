@@ -7,12 +7,14 @@ const quotationSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
     },
 
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
     plan: {
@@ -21,10 +23,10 @@ const quotationSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Quotation Template
     templateName: {
       type: String,
       default: null,
+      trim: true,
     },
 
     validDays: {
@@ -41,14 +43,20 @@ const quotationSchema = new mongoose.Schema(
     expiryDate: {
       type: Date,
       required: true,
+      validate: {
+        validator: function (value) {
+          return !this.quotationDate || value > this.quotationDate;
+        },
+        message: "Expiry date must be after quotation date.",
+      },
     },
 
     paymentTerms: {
       type: String,
       default: "Due on receipt",
+      trim: true,
     },
 
-    // Product Lines
     items: [
       {
         product: {
@@ -87,22 +95,26 @@ const quotationSchema = new mongoose.Schema(
       type: Number,
       required: true,
       default: 0,
+      min: 0,
     },
 
     taxAmount: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     discountAmount: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     totalAmount: {
       type: Number,
       required: true,
       default: 0,
+      min: 0,
     },
 
     status: {
@@ -116,11 +128,13 @@ const quotationSchema = new mongoose.Schema(
         "converted",
       ],
       default: "draft",
+      index: true,
     },
 
     notes: {
       type: String,
       default: "",
+      trim: true,
     },
 
     createdBy: {
@@ -133,6 +147,11 @@ const quotationSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Improve quotation filtering and sorting
+quotationSchema.index({ customer: 1, status: 1 });
+quotationSchema.index({ expiryDate: 1, status: 1 });
+quotationSchema.index({ createdBy: 1, createdAt: -1 });
 
 const quotationModel = mongoose.model("Quotation", quotationSchema);
 

@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -7,6 +8,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Full name is required"],
       trim: true,
+      minlength: 2,
+      maxlength: 100,
     },
 
     email: {
@@ -15,17 +18,22 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email address"],
+      match: [
+        /^\S+@\S+\.\S+$/,
+        "Please provide a valid email address",
+      ],
     },
 
     password: {
       type: String,
-      // Only require password if the user is not authenticating via Google
       required: function () {
         return !this.googleId;
       },
-      minlength: [9, "Password must be at least 9 characters long"],
-      select: false, // Prevents password hash from leaking in standard queries
+      minlength: [
+        9,
+        "Password must be at least 9 characters long",
+      ],
+      select: false,
     },
 
     profileImage: {
@@ -36,17 +44,17 @@ const userSchema = new mongoose.Schema(
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // Allows multiple documents without a googleId, while enforcing uniqueness for those that have it
+      sparse: true,
     },
 
-    // User Roles
+    // User roles
     role: {
       type: String,
       enum: ["admin", "staff", "customer"],
       default: "customer",
     },
 
-    // Email Verification
+    // Email verification
     isEmailVerified: {
       type: Boolean,
       default: false,
@@ -64,7 +72,7 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // Password Reset
+    // Password reset
     resetPasswordToken: {
       type: String,
       default: null,
@@ -77,7 +85,7 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // Account Status
+    // Account status
     isActive: {
       type: Boolean,
       default: true,
@@ -90,19 +98,24 @@ const userSchema = new mongoose.Schema(
 
 // Hash password before saving
 userSchema.pre("save", async function () {
-  if (!this.isModified("password") || !this.password) return;
+  if (!this.isModified("password") || !this.password) {
+    return;
+  }
 
   this.password = await bcrypt.hash(this.password, 10);
 });
 
 // Compare password during login
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  if (!this.password) return false;
+  if (!this.password) {
+    return false;
+  }
 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Prevent model overwrite error in hot-reload / serverless environments
-const User = mongoose.models.User || mongoose.model("User", userSchema);
+// Prevent model overwrite errors
+const User =
+  mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;
