@@ -7,7 +7,7 @@ import {
   getSinglePlan,
   updatePlan,
   deletePlan,
-} from "../controller/plan.controller.js";
+} from "../controllers/plan.controller.js";
 
 import { authUser} from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
@@ -30,3 +30,4 @@ planRouter.get("/", getAllPlans);
 planRouter.get("/:id", getSinglePlan);
 
 export default planRouter;
+

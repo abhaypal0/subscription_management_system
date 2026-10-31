@@ -101,7 +101,7 @@ export const Register = () => {
             Create an Account
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Get started with FLUX Subscriptions
+            Get started 
           </p>
         </div>
 

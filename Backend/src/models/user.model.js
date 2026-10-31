@@ -1,26 +1,31 @@
-
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+
 const userSchema = new mongoose.Schema(
   {
     fullname: {
       type: String,
-      required: true,
+      required: [true, "Full name is required"],
       trim: true,
     },
 
     email: {
       type: String,
-      required: true,
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email address"],
     },
 
     password: {
       type: String,
-      required: true,
-      minlength: 9,
+      // Only require password if the user is not authenticating via Google
+      required: function () {
+        return !this.googleId;
+      },
+      minlength: [9, "Password must be at least 9 characters long"],
+      select: false, // Prevents password hash from leaking in standard queries
     },
 
     profileImage: {
@@ -30,9 +35,8 @@ const userSchema = new mongoose.Schema(
 
     googleId: {
       type: String,
-      default: null,
-      sparse: true,
       unique: true,
+      sparse: true, // Allows multiple documents without a googleId, while enforcing uniqueness for those that have it
     },
 
     // User Roles
@@ -51,22 +55,26 @@ const userSchema = new mongoose.Schema(
     emailVerificationToken: {
       type: String,
       default: null,
+      select: false,
     },
 
     emailVerificationExpires: {
       type: Date,
       default: null,
+      select: false,
     },
 
     // Password Reset
     resetPasswordToken: {
       type: String,
       default: null,
+      select: false,
     },
 
     resetPasswordExpires: {
       type: Date,
       default: null,
+      select: false,
     },
 
     // Account Status
@@ -88,12 +96,13 @@ userSchema.pre("save", async function () {
 });
 
 // Compare password during login
-userSchema.methods.comparePassword = async function (password) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password) return false;
 
-  return bcrypt.compare(password, this.password);
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-const userModel = mongoose.model("User", userSchema);
+// Prevent model overwrite error in hot-reload / serverless environments
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
-export default userModel;
+export default User;

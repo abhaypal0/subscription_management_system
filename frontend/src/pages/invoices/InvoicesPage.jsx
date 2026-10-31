@@ -114,7 +114,7 @@ export const InvoicesPage = () => {
         key: razorpayKey,
         amount: amount,
         currency: currency || 'INR',
-        name: 'FLUX Subscriptions',
+        name: ' Subscriptions',
         description: `Payment for Invoice ${invoice.invoiceNumber}`,
         order_id: razorpayOrderId,
         prefill: {
@@ -427,7 +427,7 @@ export const InvoicesPage = () => {
               <div className="flex items-start justify-between border-b border-slate-200 pb-5">
                 <div>
                   <h2 className="text-2xl font-black text-indigo-600 tracking-tight">
-                    FLUX
+                    Subscription Management System
                   </h2>
                   <p className="text-xs text-slate-500">
                     Subscription Management Platform
