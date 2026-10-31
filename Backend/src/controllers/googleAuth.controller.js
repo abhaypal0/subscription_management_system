@@ -2,6 +2,12 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { config } from "../config/config.js";
+import express from "express";
+import { googleAuthCallback } from "../controllers/googleAuth.controller.js";
+
+const router = express.Router();
+
+
 
 const authCookieOptions = {
   httpOnly: true,
