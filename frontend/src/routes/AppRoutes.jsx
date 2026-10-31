@@ -7,6 +7,8 @@ import AppLayout from '../components/layout/AppLayout'
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import VerifyEmail from '../pages/auth/VerifyEmail'
+import ResetPassword from '../pages/auth/ResetPassword'
+import ForgotPassword from '../pages/auth/ForgotPassword'
 
 import Dashboard from '../pages/dashboard/Dashboard'
 import ProductsPage from '../pages/products/ProductsPage'
@@ -24,8 +26,13 @@ export const AppRoutes = () => {
     <Routes>
       {/* Public Auth Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email/:token" element={<VerifyEmail />} />
+      <Route
+        path="/reset-password/:token"
+        element={<ResetPassword />}
+      />
 
       {/* Protected App Routes */}
       <Route

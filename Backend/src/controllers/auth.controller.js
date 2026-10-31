@@ -1,7 +1,9 @@
 
 import User from "../models/user.model.js";
 import crypto from "crypto";
-import sendVerificationEmail from "../services/email.services.js";
+import sendVerificationEmail, {
+    sendPasswordResetEmail
+} from "../services/email.services.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
@@ -234,6 +236,157 @@ export const resendVerificationEmail = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Unable to send verification email"
+        });
+    }
+};
+
+// FORGOT PASSWORD CONTROLLER
+
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required"
+            });
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+
+        const user = await User.findOne({
+            email: normalizedEmail
+        });
+
+        // Use the same response whether the account exists or not.
+        const successMessage =
+            "If an account exists with this email, a password reset link has been sent.";
+
+        if (!user || !user.isActive) {
+            return res.status(200).json({
+                success: true,
+                message: successMessage
+            });
+        }
+
+        // Generate a secure reset token
+        const resetToken = crypto.randomBytes(32).toString("hex");
+
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex");
+
+        user.resetPasswordToken = hashedToken;
+
+        user.resetPasswordExpires = new Date(
+            Date.now() + 15 * 60 * 1000
+        );
+
+        await user.save();
+
+        try {
+            await sendPasswordResetEmail(
+                user.email,
+                resetToken
+            );
+        } catch (emailError) {
+            // Clear the token if email delivery fails
+            user.resetPasswordToken = null;
+            user.resetPasswordExpires = null;
+            await user.save();
+
+            throw emailError;
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: successMessage
+        });
+
+    } catch (error) {
+        console.error("Forgot Password Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to process password reset request"
+        });
+    }
+};
+
+
+// RESET PASSWORD CONTROLLER
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password, confirmPassword } = req.body;
+
+        if (!token || !password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Token, password and confirm password are required"
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match"
+            });
+        }
+
+        // Match registration password requirements
+        const passwordRegex =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{9,}$/;
+
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must contain at least 9 characters, one uppercase letter, one lowercase letter and one special character"
+            });
+        }
+
+        // Hash incoming token before database lookup
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: new Date() }
+        }).select("+resetPasswordToken +resetPasswordExpires +password");
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired password reset link"
+            });
+        }
+
+        // Assign plain password.
+        // The User model's pre-save hook hashes it automatically.
+        user.password = password;
+
+        // Make the reset token unusable after successful reset
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password reset successful. Please login with your new password."
+        });
+
+    } catch (error) {
+        console.error("Reset Password Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to reset password"
         });
     }
 };

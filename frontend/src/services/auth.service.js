@@ -1,3 +1,4 @@
+
 import api from '../api/axios'
 import { API_ENDPOINTS } from '../api/endpoints'
 
@@ -29,6 +30,19 @@ export const authService = {
 
   resendVerificationEmail: async (email) => {
     const response = await api.post(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, { email })
+    return response.data
+  },
+
+  forgotPassword: async (email) => {
+    const response = await api.post('/api/auth/forgot-password', { email })
+    return response.data
+  },
+
+  resetPassword: async (token, password, confirmPassword) => {
+    const response = await api.post(
+      `/api/auth/reset-password/${token}`,
+      { password, confirmPassword }
+    )
     return response.data
   },
 

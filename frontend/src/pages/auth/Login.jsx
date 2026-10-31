@@ -9,6 +9,7 @@ import Input from '../../components/common/Input'
 import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 
+
 export const Login = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -77,7 +78,7 @@ export const Login = () => {
             <Sparkles className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Sign in 
+            Sign in
           </h2>
           <p className="text-sm text-slate-500 mt-1">
             Subscription & Recurring Billing Management
@@ -127,6 +128,14 @@ export const Login = () => {
             onChange={handleChange}
             autoComplete="current-password"
           />
+          <div className="flex justify-end -mt-2">
+            <Link
+              to="/forgot-password"
+              className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              Forgot Password?
+            </Link>
+          </div>
 
           <Button
             type="submit"
